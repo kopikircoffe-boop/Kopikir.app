@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kopikir - Pre Order</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --dark: #1f1d1d; --accent: #e65100; --bg: #f9f6f0; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { background-color: var(--bg); margin: 0; padding: 16px; color: #333; }
+    .card { max-width: 450px; margin: auto; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { margin: 0; font-size: 1.8rem; color: var(--dark); letter-spacing: -0.5px; }
+    .header span { color: var(--accent); }
+    .header p { margin: 4px 0 0; font-size: 0.85rem; color: #666; }
+    
+    .menu-item { border: 1px solid #eee; border-radius: 12px; padding: 12px; margin-bottom: 12px; background: #fafafa; }
+    .menu-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 0.95rem; }
+    .menu-price { color: var(--accent); }
+    .menu-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    select, input, textarea { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.85rem; }
+    .extra-check { margin-top: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+    .btn-add { width: 100%; background: var(--dark); color: white; border: none; padding: 8px; border-radius: 6px; margin-top: 8px; cursor: pointer; font-weight: bold; }
+
+    .cart-summary { background: #fff3e0; border-radius: 10px; padding: 14px; margin-top: 20px; border-left: 4px solid var(--accent); }
+    .btn-submit { width: 100%; background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 15px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>kopi<span>kir</span></h1>
+    <p>Mau kopi? <b>Ya Kopikir lah.</b></p>
+  </div>
+
+  <div id="menuContainer"></div>
+
+  <div class="cart-summary">
+    <strong>Pesanan Kamu:</strong>
+    <div id="cartItems" style="font-size: 0.85rem; margin: 8px 0; color: #444;">Belum ada pesanan</div>
+    <div style="font-size: 1.05rem; font-weight: bold;">Total: <span id="totalDisplay">Rp 0</span></div>
+  </div>
+
+  <h4 style="margin: 20px 0 8px;">Informasi Pengambilan:</h4>
+  <input type="text" id="nama" placeholder="Nama Lengkap / Panggilan" style="margin-bottom: 8px;" required>
+  <input type="text" id="kelas" placeholder="Kelas & Jurusan (Contoh: XII RPL 1)" style="margin-bottom: 8px;" required>
+  <input type="tel" id="whatsapp" placeholder="Nomor WhatsApp" style="margin-bottom: 8px;" required>
+  
+  <select id="jadwal" style="margin-bottom: 8px;">
+    <option value="Istirahat 1">Ambil pas Istirahat 1</option>
+    <option value="Istirahat 2">Ambil pas Istirahat 2</option>
+    <option value="Pulang Sekolah">Ambil pas Pulang Sekolah</option>
+  </select>
+
+  <textarea id="catatan" rows="2" placeholder="Catatan tambahan..."></textarea>
+
+  <button class="btn-submit" onclick="submitOrder()">Kirim Pre-Order</button>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://wypukvabbpfnrsvoexms.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5cHVrdmFiYnBmbnJzdm9leG1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMDI2ODgsImV4cCI6MjEwNzc3ODY4OH0.P9a4oK7DdFVHRBn47IRYHWhpN8oug8t8IWR5vsHHdaA";
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const menuList = [
+    { id: 1, nama: "Kopi Susu", harga: 5000 },
+    { id: 2, nama: "Caramel Latte", harga: 6000 },
+    { id: 3, nama: "Spanish Latte", harga: 8000 },
+    { id: 4, nama: "Mocha Coffee", harga: 7000 },
+    { id: 5, nama: "Matcha Latte", harga: 8000 },
+    { id: 6, nama: "Matcha Ori", harga: 6000 },
+    { id: 7, nama: "Americano", harga: 4000 }
+  ];
+
+  let cart = [];
+
+  function renderMenu() {
+    const cont = document.getElementById("menuContainer");
+    cont.innerHTML = menuList.map(m => `
+      <div class="menu-item">
+        <div class="menu-header">
+          <span>${m.nama}</span>
+          <span class="menu-price">Rp ${m.harga.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="menu-custom">
+          <select id="sugar-${m.id}">
+            <option value="Normal Sugar">Normal Sugar</option>
+            <option value="Less Sugar">Less Sugar</option>
+            <option value="Extra Sugar">Extra Sugar</option>
+          </select>
+          <select id="ice-${m.id}">
+            <option value="Normal Ice">Normal Ice</option>
+            <option value="Less Ice">Less Ice</option>
+            <option value="Extra Ice">Extra Ice</option>
+          </select>
+        </div>
+        <label class="extra-check">
+          <input type="checkbox" id="extra-${m.id}"> + Extra Espresso (+Rp 1.000)
+        </label>
+        <button class="btn-add" onclick="addToCart(${m.id})">+ Tambah ke Pesanan</button>
+      </div>
+    `).join("");
+  }
+
+  function addToCart(id) {
+    const item = menuList.find(m => m.id === id);
+    const sugar = document.getElementById(`sugar-${id}`).value;
+    const ice = document.getElementById(`ice-${id}`).value;
+    const isExtra = document.getElementById(`extra-${id}`).checked;
+    
+    const finalPrice = item.harga + (isExtra ? 1000 : 0);
+    const detail = `${item.nama} [${sugar}, ${ice}${isExtra ? ', +Ekstra Espresso' : ''}]`;
+
+    cart.push({ nama: item.nama, detail: detail, harga: finalPrice });
+    updateCart();
+  }
+
+  function updateCart() {
+    const cartDiv = document.getElementById("cartItems");
+    const totalDiv = document.getElementById("totalDisplay");
+    
+    if (cart.length === 0) {
+      cartDiv.innerHTML = "Belum ada pesanan";
+      totalDiv.innerText = "Rp 0";
+      return;
+    }
+
+    cartDiv.innerHTML = cart.map((c, i) => `• ${c.detail} - <b>Rp ${c.harga.toLocaleString('id-ID')}</b>`).join("<br>");
+    const total = cart.reduce((sum, item) => sum + item.harga, 0);
+    totalDiv.innerText = "Rp " + total.toLocaleString('id-ID');
+  }
+
+  async function submitOrder() {
+    if (cart.length === 0) return alert("Pilih minimal 1 minuman ya!");
+    const nama = document.getElementById("nama").value.trim();
+    const kelas = document.getElementById("kelas").value.trim();
+    const wa = document.getElementById("whatsapp").value.trim();
+    const jadwal = document.getElementById("jadwal").value;
+    const catatan = document.getElementById("catatan").value.trim();
+
+    if (!nama || !kelas || !wa) return alert("Nama, kelas, dan WA wajib diisi!");
+
+    // Generate nomor antrean acak sederhana (Contoh: KP-482)
+    const antrean = "KP-" + Math.floor(100 + Math.random() * 900);
+    const total = cart.reduce((sum, item) => sum + item.harga, 0);
+    const itemStrings = cart.map(c => c.detail).join(" | ");
+
+    const { error } = await db.from('pesanan_kopikir').insert([{
+      nomor_antrean: antrean,
+      nama_siswa: nama,
+      kelas: kelas,
+      whatsapp: wa,
+      jadwal_ambil: jadwal,
+      detail_pesanan: itemStrings,
+      total_harga: total,
+      catatan: catatan
+    }]);
+
+    if (error) {
+      alert("Gagal order: " + error.message);
+    } else {
+      alert(`Pesanan Terkirim!\nNomor Antrean Kamu: ${antrean}\nTotal: Rp ${total.toLocaleString('id-ID')} (Bayar pas ambil ya)`);
+      cart = [];
+      updateCart();
+      document.getElementById("nama").value = "";
+      document.getElementById("kelas").value = "";
+      document.getElementById("whatsapp").value = "";
+      document.getElementById("catatan").value = "";
+    }
+  }
+
+  renderMenu();
+</script>
+</body>
+</html>
