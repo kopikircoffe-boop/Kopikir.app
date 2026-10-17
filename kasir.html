@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir Kopikir - Antrean Realtime</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { background-color: #121212; color: #fff; padding: 20px; margin: 0; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .card-order { background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 16px; position: relative; }
+    .antrean-badge { background: #e65100; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; }
+    .status-badge { font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; background: #333; color: #bbb; }
+    .items { margin: 12px 0; font-size: 0.88rem; line-height: 1.5; color: #ddd; background: #282828; padding: 10px; border-radius: 8px; }
+    .btn-done { width: 100%; background: #2e7d32; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-refresh { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h2 style="margin: 0; color: #e65100;">Kasir Kopikir</h2>
+    <small>Pantauan Antrean Pesanan Pre-Order</small>
+  </div>
+  <button class="btn-refresh" onclick="loadPesanan()">Refresh Data</button>
+</div>
+
+<div class="grid" id="antreanContainer">Memuat data pesanan...</div>
+
+<script>
+  const SUPABASE_URL = "https://wypukvabbpfnrsvoexms.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5cHVrdmFiYnBmbnJzdm9leG1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMDI2ODgsImV4cCI6MjEwNzc3ODY4OH0.P9a4oK7DdFVHRBn47IRYHWhpN8oug8t8IWR5vsHHdaA";
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  async function loadPesanan() {
+    const cont = document.getElementById("antreanContainer");
+    
+    // Ambil pesanan yang belum selesai
+    const { data, error } = await db
+      .from('pesanan_kopikir')
+      .select('*')
+      .neq('status', 'Selesai')
+      .order('id', { ascending: true });
+
+    if (error) {
+      cont.innerHTML = "Gagal memuat: " + error.message;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      cont.innerHTML = "<p style='color: #888;'>Belum ada antrean masuk.</p>";
+      return;
+    }
+
+    cont.innerHTML = data.map(o => `
+      <div class="card-order">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="antrean-badge">${o.nomor_antrean}</span>
+          <span class="status-badge">${o.jadwal_ambil}</span>
+        </div>
+        <h3 style="margin: 12px 0 4px;">${o.nama_siswa} <span style="font-size: 0.85rem; font-weight:normal; color:#aaa;">(${o.kelas})</span></h3>
+        <small style="color: #4fc3f7;">WA: ${o.whatsapp}</small>
+        
+        <div class="items">
+          ${o.detail_pesanan.split(" | ").map(item => `<div>• ${item}</div>`).join("")}
+          ${o.catatan ? `<div style="margin-top:6px; color:#ffb74d;"><i>Note: ${o.catatan}</i></div>` : ''}
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.05rem;">
+          <span>Total Tagihan:</span>
+          <span style="color:#81c784;">Rp ${Number(o.total_harga).toLocaleString('id-ID')}</span>
+        </div>
+
+        <button class="btn-done" onclick="selesaikanOrder(${o.id})">Tandai Selesai / Lunas</button>
+      </div>
+    `).join("");
+  }
+
+  async function selesaikanOrder(id) {
+    const { error } = await db.from('pesanan_kopikir').update({ status: 'Selesai' }).eq('id', id);
+    if (!error) {
+      loadPesanan();
+    }
+  }
+
+  // Load otomatis saat dibuka dan auto-refresh tiap 10 detik
+  loadPesanan();
+  setInterval(loadPesanan, 10000);
+</script>
+</body>
+</html>
