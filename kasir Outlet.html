@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kopikir - Kasir POS Modern & Google Sheets</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="bg-slate-900 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                <i class="fa-solid fa-mug-hot text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-tight">Kopikir</h1>
+                <p class="text-xs text-slate-500 italic">"Mau kopi? Ya Kopikir lah."</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="switchTab('pos')" id="btn-tab-pos" class="px-4 py-2 bg-slate-900 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm">
+                <i class="fa-solid fa-store"></i>
+                <span>Kasir (POS)</span>
+            </button>
+            <button onclick="switchTab('management')" id="btn-tab-management" class="px-4 py-2 bg-white text-slate-600 hover:bg-slate-100 font-medium rounded-xl text-sm transition flex items-center space-x-2 border border-slate-200">
+                <i class="fa-solid fa-utensils"></i>
+                <span>Kelola Menu & Diskon</span>
+            </button>
+            <button onclick="switchTab('history')" id="btn-tab-history" class="px-4 py-2 bg-white text-slate-600 hover:bg-slate-100 font-medium rounded-xl text-sm transition flex items-center space-x-2 border border-slate-200">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Riwayat Transaksi</span>
+            </button>
+            <div class="h-6 w-px bg-slate-200 mx-1"></div>
+            <div class="flex items-center space-x-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition" onclick="openShiftModal()" title="Ubah Info Kasir">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span id="cashier-info-display" class="text-xs font-semibold text-slate-700">Kasir: Siska (Shift Pagi)</span>
+                <i class="fa-solid fa-pen text-[10px] text-slate-400 ml-1"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden relative">
+        <!-- POS Tab Content -->
+        <div id="tab-pos" class="h-full flex flex-col md:flex-row">
+            <!-- Left: Catalog & Search -->
+            <div class="flex-1 flex flex-col h-full bg-white p-6 overflow-hidden border-r border-slate-200">
+                <!-- Search & Filters -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-5 shrink-0">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="search-input" oninput="filterProducts()" placeholder="Cari menu minuman Kopikir..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition">
+                    </div>
+                    <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0" id="category-filters">
+                        <button onclick="filterCategory('all')" class="cat-btn px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium whitespace-nowrap shadow-sm transition">Semua</button>
+                        <button onclick="filterCategory('Coffee')" class="cat-btn px-4 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium whitespace-nowrap transition">Coffee</button>
+                        <button onclick="filterCategory('Non-Coffee')" class="cat-btn px-4 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium whitespace-nowrap transition">Non-Coffee</button>
+                        <button onclick="filterCategory('Matcha')" class="cat-btn px-4 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium whitespace-nowrap transition">Matcha</button>
+                    </div>
+                </div>
+
+                <!-- Product Grid -->
+                <div class="flex-1 overflow-y-auto pr-1 pb-20">
+                    <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- Products rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Cart & Order Summary -->
+            <div class="w-full md:w-[420px] lg:w-[460px] bg-slate-50 flex flex-col h-full shadow-lg shrink-0">
+                <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+                    <h2 class="font-bold text-slate-900 flex items-center space-x-2">
+                        <i class="fa-solid fa-receipt text-slate-900"></i>
+                        <span>Pesanan Pelanggan</span>
+                    </h2>
+                    <button onclick="clearCart()" class="text-xs text-rose-600 hover:text-rose-700 font-medium px-2.5 py-1 rounded-md hover:bg-rose-50 transition">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Kosongkan
+                    </button>
+                </div>
+
+                <!-- Customer Info -->
+                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-2 gap-3 shrink-0">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nama Pemesan</label>
+                        <input type="text" id="customer-name" placeholder="Cth: Kak Sarah" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nomor Meja</label>
+                        <input type="text" id="table-number" placeholder="Cth: Meja 03" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
+                    </div>
+                </div>
+
+                <!-- Cart List -->
+                <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-slate-100 pb-20">
+                    <div id="empty-cart-msg" class="h-full flex flex-col items-center justify-center text-slate-400 py-12">
+                        <i class="fa-solid fa-mug-saucer text-4xl mb-3 text-slate-300"></i>
+                        <p class="text-sm font-medium">Belum ada pesanan Kopikir</p>
+                        <p class="text-xs text-slate-400 mt-1">Pilih menu di sebelah kiri untuk mulai</p>
+                    </div>
+                </div>
+
+                <!-- Summary & Checkout Action -->
+                <div class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3 shadow-inner">
+                    <div class="space-y-1.5 text-sm">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Subtotal</span>
+                            <span id="subtotal-amount" class="font-medium">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>PPN (10%)</span>
+                            <span id="tax-amount" class="font-medium">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold text-slate-900 pt-2 border-t border-slate-200">
+                            <span>Total Pembayaran</span>
+                            <span id="grand-total" class="text-slate-900">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <button onclick="openCheckoutModal()" id="checkout-btn" disabled class="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-cash-register"></i>
+                        <span>Proses Pembayaran</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Tab Content -->
+        <div id="tab-management" class="h-full flex flex-col bg-white p-6 hidden overflow-hidden">
+            <div class="flex justify-between items-center mb-6 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Kelola Menu & Diskon Produk</h2>
+                    <p class="text-sm text-slate-500">Tambah menu baru, ubah harga, foto, atau atur diskon khusus</p>
+                </div>
+                <button onclick="openAddProductModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Tambah Menu Baru</span>
+                </button>
+            </div>
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 flex-1 overflow-hidden flex flex-col">
+                <div class="overflow-y-auto flex-1 p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="management-product-grid">
+                        <!-- Management cards injected dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab Content -->
+        <div id="tab-history" class="h-full flex flex-col bg-white p-6 hidden overflow-hidden">
+            <div class="flex justify-between items-center mb-6 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Riwayat Transaksi Kopikir</h2>
+                    <p class="text-sm text-slate-500">Daftar penjualan harian outlet</p>
+                </div>
+                <button onclick="exportHistory()" class="px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-medium rounded-xl transition flex items-center space-x-2">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Ekspor Data</span>
+                </button>
+            </div>
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 flex-1 overflow-hidden flex flex-col">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-white sticky top-0 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+                            <tr>
+                                <th class="p-4">ID Transaksi</th>
+                                <th class="p-4">Waktu</th>
+                                <th class="p-4">Pemesan</th>
+                                <th class="p-4">Total</th>
+                                <th class="p-4">Metode</th>
+                                <th class="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-200 text-sm">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-history" class="hidden h-full flex flex-col items-center justify-center text-slate-400 py-12">
+                    <i class="fa-solid fa-receipt text-4xl mb-3 text-slate-300"></i>
+                    <p class="text-sm font-medium">Belum ada riwayat transaksi</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Shift / Cashier Modal -->
+    <div id="shift-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900">Ubah Info Kasir & Shift</h3>
+                <button onclick="closeShiftModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Kasir</label>
+                    <input type="text" id="input-cashier-name" value="Siska" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Shift Kerja</label>
+                    <select id="input-shift-name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
+                        <option value="Shift Pagi">Shift Pagi</option>
+                        <option value="Shift Siang">Shift Siang</option>
+                        <option value="Shift Malam">Shift Malam</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closeShiftModal()" class="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition">Batal</button>
+                <button onclick="saveShiftInfo()" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customization Modal -->
+    <div id="customization-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div>
+                    <h3 id="modal-product-name" class="font-bold text-base text-slate-900">Kustomisasi Menu</h3>
+                    <p class="text-xs text-slate-500 font-medium" id="modal-product-price">Rp 0</p>
+                </div>
+                <button onclick="closeCustomizationModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Hot / Ice Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Suhu (Hot / Ice)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="selectTemp('Ice')" id="temp-ice" class="py-2 px-3 border-2 border-slate-900 bg-slate-50 text-slate-900 font-semibold rounded-xl text-xs text-center transition">Ice (Dingin)</button>
+                        <button onclick="selectTemp('Hot')" id="temp-hot" class="py-2 px-3 border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-600 font-semibold rounded-xl text-xs text-center transition">Hot (Panas)</button>
+                    </div>
+                </div>
+
+                <!-- Cup Size -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Ukuran Cup</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="selectSize('Regular', 0)" id="size-regular" class="py-2 px-3 border-2 border-slate-900 bg-slate-50 text-slate-900 font-semibold rounded-xl text-xs flex justify-between items-center transition">
+                            <span>Regular</span>
+                            <span class="text-[10px] font-normal">Std</span>
+                        </button>
+                        <button onclick="selectSize('Large', 5000)" id="size-large" class="py-2 px-3 border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-600 font-semibold rounded-xl text-xs flex justify-between items-center transition">
+                            <span>Large (+L)</span>
+                            <span class="text-[10px] text-slate-500">+Rp 5.000</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ice Level (Only if Ice) -->
+                <div id="ice-level-container">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Level Es (Ice Level)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="selectIceLevel('Normal Ice')" id="ice-normal" class="py-2 px-2 border-2 border-slate-900 bg-slate-50 text-slate-900 font-semibold rounded-xl text-xs text-center transition">Normal</button>
+                        <button onclick="selectIceLevel('Less Ice')" id="ice-less" class="py-2 px-2 border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-600 font-semibold rounded-xl text-xs text-center transition">Less Ice</button>
+                        <button onclick="selectIceLevel('No Ice')" id="ice-none" class="py-2 px-2 border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-600 font-semibold rounded-xl text-xs text-center transition">No Ice</button>
+                    </div>
+                </div>
+
+                <!-- Sugar Level -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Level Gula</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="selectSugar('Normal Sugar')" id="sugar-normal" class="py-2 px-2 border-2 border-slate-900 bg-slate-50 text-slate-900 font-semibold rounded-xl text-xs text-center transition">Normal</button>
+                        <button onclick="selectSugar('Less Sugar')" id="sugar-less" class="py-2 px-2 border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-600 font-semibold rounded-xl text-xs text-center transition">Less (50%)</button>
+                        <button onclick="selectSugar('No Sugar')" id="sugar-none" class="py-2 px-2 bord
