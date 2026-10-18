@@ -141,15 +141,21 @@
 
         <!-- Management Tab Content -->
         <div id="tab-management" class="h-full flex flex-col bg-white p-6 hidden overflow-hidden">
-            <div class="flex justify-between items-center mb-6 shrink-0">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 shrink-0">
                 <div>
                     <h2 class="text-xl font-bold text-slate-900">Kelola Menu & Diskon Produk</h2>
-                    <p class="text-sm text-slate-500">Tambah menu baru, ubah harga, foto, atau atur diskon khusus</p>
+                    <p class="text-sm text-slate-500">Tersimpan otomatis di perangkat meskipun halaman di-refresh</p>
                 </div>
-                <button onclick="openAddProductModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Tambah Menu Baru</span>
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="resetDefaultProducts()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-xl text-xs transition flex items-center space-x-1.5" title="Kembalikan ke 8 menu awal">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Reset Menu Awal</span>
+                    </button>
+                    <button onclick="openAddProductModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Tambah Menu Baru</span>
+                    </button>
+                </div>
             </div>
             <div class="bg-slate-50 rounded-2xl border border-slate-200 flex-1 overflow-hidden flex flex-col">
                 <div class="overflow-y-auto flex-1 p-4">
@@ -471,9 +477,10 @@
 
     <script>
         // URL Web App dari Google Apps Script kamu
-        const googleScriptURL = 'https://script.google.com/macros/s/AKfycbxrkgQpkD8KN9i3oi37t7ljh5j3irxRTgCELxOCB7ydWw4KpKIi_FO69iHKRqnxvZt8jw/exec';
+        const googleScriptURL = 'MASUKKAN_URL_WEB_APP_APPS_SCRIPT_KAMU_DISINI';
 
-        let products = [
+        // Daftar menu bawaan (Default)
+        const defaultProducts = [
             { id: 1, name: "Kopikir Latte", category: "Coffee", price: 24000, discount: 0, isCoffee: true, image: "https://placehold.co/300x200/e2e8f0/0f172a?text=Kopikir+Latte" },
             { id: 2, name: "Kopikir Hitam", category: "Coffee", price: 18000, discount: 0, isCoffee: true, image: "https://placehold.co/300x200/e2e8f0/0f172a?text=Kopikir+Hitam" },
             { id: 3, name: "Kopikir Gula Aren", category: "Coffee", price: 22000, discount: 10, isCoffee: true, image: "https://placehold.co/300x200/e2e8f0/0f172a?text=Kopikir+Gula+Aren" },
@@ -484,14 +491,16 @@
             { id: 8, name: "Cocho Lattel", category: "Non-Coffee", price: 25000, discount: 0, isCoffee: false, image: "https://placehold.co/300x200/e2e8f0/0f172a?text=Cocho+Lattel" }
         ];
 
+        // Muat data dari localStorage jika sudah ada, jika belum pakai default
+        let products = JSON.parse(localStorage.getItem('kopikir_products')) || [...defaultProducts];
+        let historyTransactions = JSON.parse(localStorage.getItem('kopikir_history')) || [];
+        let cashierName = localStorage.getItem('kopikir_cashier') || 'Siska';
+        let shiftName = localStorage.getItem('kopikir_shift') || 'Shift Pagi';
+
         let cart = [];
-        let historyTransactions = [];
         let currentCategory = 'all';
         let currentSearchQuery = '';
         let paymentMethod = 'Cash';
-
-        let cashierName = 'Siska';
-        let shiftName = 'Shift Pagi';
 
         let selectedProductForCustomization = null;
         let selectedTemp = 'Ice';
@@ -499,6 +508,24 @@
         let selectedSizePrice = 0;
         let selectedIceLevel = 'Normal Ice';
         let selectedSugarLevel = 'Normal Sugar';
+
+        // Fungsi menyimpan ke localStorage
+        function saveProductsToStorage() {
+            localStorage.setItem('kopikir_products', JSON.stringify(products));
+        }
+
+        function saveHistoryToStorage() {
+            localStorage.setItem('kopikir_history', JSON.stringify(historyTransactions));
+        }
+
+        function resetDefaultProducts() {
+            if (confirm('Yakin ingin mengembalikan daftar menu ke 8 menu awal Kopikir? Menu baru yang kamu tambahkan akan terhapus.')) {
+                products = [...defaultProducts];
+                saveProductsToStorage();
+                applyFilters();
+                renderManagementGrid();
+            }
+        }
 
         window.onload = function() {
             renderProducts(products);
@@ -549,6 +576,8 @@
         function saveShiftInfo() {
             cashierName = document.getElementById('input-cashier-name').value.trim() || 'Kasir';
             shiftName = document.getElementById('input-shift-name').value;
+            localStorage.setItem('kopikir_cashier', cashierName);
+            localStorage.setItem('kopikir_shift', shiftName);
             updateCashierDisplay();
             closeShiftModal();
         }
@@ -928,14 +957,19 @@
                 });
             }
 
+            // Simpan perubahan menu ke localStorage
+            saveProductsToStorage();
+
             closeProductModal();
-            renderProducts(products);
+            applyFilters();
             renderManagementGrid();
         }
 
         function deleteProduct(id) {
             products = products.filter(p => p.id !== id);
-            renderProducts(products);
+            // Simpan perubahan setelah hapus ke localStorage
+            saveProductsToStorage();
+            applyFilters();
             renderManagementGrid();
         }
 
@@ -1046,7 +1080,7 @@
             };
 
             // KIRIM DATA OTOMATIS KE GOOGLE SHEETS VIA APPS SCRIPT
-            if (googleScriptURL && googleScriptURL !== 'MASUKKAN_URL_WEB_APP_APPS_SCRIPT_KAMU_DISINI') {
+            if (googleScriptURL && googleScriptURL !== 'https://script.google.com/macros/s/AKfycbxrkgQpkD8KN9i3oi37t7ljh5j3irxRTgCELxOCB7ydWw4KpKIi_FO69iHKRqnxvZt8jw/exec') {
                 try {
                     fetch(googleScriptURL, {
                         method: 'POST',
@@ -1059,7 +1093,7 @@
                 }
             }
 
-            historyTransactions.unshift({
+            const newHistoryItem = {
                 id: transactionId,
                 date: dateStr,
                 cashier: `${cashierName} (${shiftName})`,
@@ -1072,23 +1106,14 @@
                 paymentMethod: paymentMethod,
                 cashGiven: cashGiven,
                 change: change
-            });
+            };
+
+            historyTransactions.unshift(newHistoryItem);
+            // Simpan riwayat transaksi ke localStorage agar tidak hilang saat refresh
+            saveHistoryToStorage();
 
             closeCheckoutModal();
-            openReceiptModal({
-                id: transactionId,
-                date: dateStr,
-                cashier: `${cashierName} (${shiftName})`,
-                customerName: custName,
-                tableNumber: tableNum,
-                subtotal: subtotal,
-                tax: tax,
-                total: grandTotal,
-                paymentMethod: paymentMethod,
-                cashGiven: cashGiven,
-                change: change,
-                items: cart
-            });
+            openReceiptModal(newHistoryItem);
 
             cart = [];
             document.getElementById('customer-name').value = '';
