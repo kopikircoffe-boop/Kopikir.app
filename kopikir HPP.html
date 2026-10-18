@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kopikir - HPP & Profit Planner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="bg-slate-900 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                <i class="fa-solid fa-calculator text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-tight">Kopikir HPP & Profit Planner</h1>
+                <p class="text-xs text-slate-500 italic">"Hitung modal akurat, maksimalkan cuan bisnis kopi."</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 overflow-x-auto">
+            <button onclick="switchTab('ingredients')" id="btn-tab-ingredients" class="px-4 py-2 bg-slate-900 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm whitespace-nowrap">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>Bahan & Kemasan</span>
+            </button>
+            <button onclick="switchTab('recipes')" id="btn-tab-recipes" class="px-4 py-2 bg-white text-slate-600 hover:bg-slate-100 font-medium rounded-xl text-sm transition flex items-center space-x-2 border border-slate-200 whitespace-nowrap">
+                <i class="fa-solid fa-blender"></i>
+                <span>Racik Resep & HPP</span>
+            </button>
+            <button onclick="switchTab('simulator')" id="btn-tab-simulator" class="px-4 py-2 bg-white text-slate-600 hover:bg-slate-100 font-medium rounded-xl text-sm transition flex items-center space-x-2 border border-slate-200 whitespace-nowrap">
+                <i class="fa-solid fa-tags"></i>
+                <span>Simulator Harga & Promo</span>
+            </button>
+            <button onclick="switchTab('bep')" id="btn-tab-bep" class="px-4 py-2 bg-white text-slate-600 hover:bg-slate-100 font-medium rounded-xl text-sm transition flex items-center space-x-2 border border-slate-200 whitespace-nowrap">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Target BEP & Laba</span>
+            </button>
+            <div class="h-6 w-px bg-slate-200 mx-1"></div>
+            <button onclick="resetAllData()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-xl text-xs transition flex items-center space-x-1.5 whitespace-nowrap border border-rose-200" title="Kembalikan data ke awal">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Reset Data</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden relative p-6">
+        
+        <!-- TAB 1: Bahan & Kemasan -->
+        <div id="tab-ingredients" class="h-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Database Bahan Baku & Kemasan</h2>
+                    <p class="text-xs text-slate-500">Kelola harga beli bahan mentah dan kemasan per satuan terkecil (gram, ml, pcs)</p>
+                </div>
+                <button onclick="openIngredientModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Tambah Bahan Baru</span>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+                        <tr>
+                            <th class="p-4">Nama Bahan / Kemasan</th>
+                            <th class="p-4">Kategori</th>
+                            <th class="p-4">Harga Beli Kemasan</th>
+                            <th class="p-4">Isi Satuan Pembelian</th>
+                            <th class="p-4">Harga per Unit (Gram/Ml/Pcs)</th>
+                            <th class="p-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ingredients-table-body" class="divide-y divide-slate-100 text-sm">
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: Racik Resep & HPP -->
+        <div id="tab-recipes" class="h-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden">
+            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Racik Resep & Kalkulasi HPP Menu</h2>
+                    <p class="text-xs text-slate-500">Komposisi takaran bahan per cup dan total HPP bersih otomatis</p>
+                </div>
+                <button onclick="openRecipeModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Tambah Resep Menu</span>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="recipes-grid">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Simulator Harga & Promo -->
+        <div id="tab-simulator" class="h-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden">
+            <div class="p-5 border-b border-slate-200 shrink-0">
+                <h2 class="text-lg font-bold text-slate-900">Simulator Harga Jual, Margin & Ojol</h2>
+                <p class="text-xs text-slate-500">Simulasikan harga jual outlet, diskon promo merchant ojol (GoFood/GrabFood), dan proyeksi bersih</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                        <h3 class="font-bold text-sm text-slate-900 mb-2">Parameter Simulasi</h3>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pilih Menu</label>
+                            <select id="sim-recipe-select" onchange="updateSimulator()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                                <!-- Options injected -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Harga Jual Outlet (Rp)</label>
+                            <input type="number" id="sim-selling-price" oninput="updateSimulator()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="25000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Target Margin Keuntungan (%)</label>
+                            <input type="number" id="sim-target-margin" oninput="updateSimulatorFromMargin()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="60">
+                        </div>
+                        <div class="pt-2 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Komisi Ojol (Misal: 20%)</label>
+                            <input type="number" id="sim-ojol-comm" oninput="updateSimulator()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Diskon Promo Merchant (%)</label>
+                            <input type="number" id="sim-promo-disc" oninput="updateSimulator()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="0">
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">HPP Bersih (Modal Cup)</span>
+                                <p id="sim-res-hpp" class="text-2xl font-bold text-slate-900 mt-1">Rp 0</p>
+                                <span class="text-[11px] text-slate-500 mt-1 block">Modal dasar bahan + kemasan</span>
+                            </div>
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Laba Kotor per Cup (Outlet)</span>
+                                <p id="sim-res-profit" class="text-2xl font-bold text-emerald-600 mt-1">Rp 0</p>
+                                <span id="sim-res-margin" class="text-[11px] text-slate-500 mt-1 block">Margin: 0%</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 text-white p-6 rounded-2xl space-y-3 shadow-md">
+                            <h3 class="font-bold text-base border-b border-slate-800 pb-2 flex items-center space-x-2">
+                                <i class="fa-solid fa-motorcycle text-amber-400"></i>
+                                <span>Simulasi Penjualan via Ojol (GoFood / GrabFood)</span>
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-sm">
+                                <div>
+                                    <span class="text-slate-400 text-xs block">Harga Jual Ojol</span>
+                                    <span id="sim-ojol-price" class="font-bold text-lg">Rp 0</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 text-xs block">Potongan Komisi Ojol</span>
+                                    <span id="sim-ojol-cut" class="font-bold text-lg text-rose-400">Rp 0</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 text-xs block">Laba Bersih Diterima</span>
+                                    <span id="sim-ojol-net" class="font-bold text-lg text-emerald-400">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Target BEP & Laba -->
+        <div id="tab-bep" class="h-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden">
+            <div class="p-5 border-b border-slate-200 shrink-0">
+                <h2 class="text-lg font-bold text-slate-900">Kalkulator Biaya Operasional, BEP & Target Laba</h2>
+                <p class="text-xs text-slate-500">Hitung titik impas (Break Even Point) outlet berdasarkan biaya tetap bulanan</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                        <h3 class="font-bold text-sm text-slate-900 mb-2">Biaya Tetap Bulanan (Fixed Cost)</h3>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sewa Tempat / Bulan (Rp)</label>
+                            <input type="number" id="bep-rent" oninput="calculateBep()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="3000000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Gaji Karyawan / Bulan (Rp)</label>
+                            <input type="number" id="bep-salary" oninput="calculateBep()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="4500000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Listrik, Air & Internet (Rp)</label>
+                            <input type="number" id="bep-utilities" oninput="calculateBep()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="800000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Biaya Lain-lain (Rp)</label>
+                            <input type="number" id="bep-other" oninput="calculateBep()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="500000">
+                        </div>
+                        <div class="pt-2 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Estimasi Rata-rata Laba Kotor per Cup (Rp)</label>
+                            <input type="number" id="bep-avg-profit" oninput="calculateBep()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="15000">
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Biaya Bulanan</span>
+                                <p id="bep-res-total-cost" class="text-xl font-bold text-slate-900 mt-1">Rp 0</p>
+                            </div>
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">BEP Cup / Bulan</span>
+                                <p id="bep-res-cups-month" class="text-xl font-bold text-amber-600 mt-1">0 cup</p>
+                            </div>
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">BEP Cup / Hari</span>
+                                <p id="bep-res-cups-day" class="text-xl font-bold text-emerald-600 mt-1">0 cup</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3">
+                            <h3 class="font-bold text-sm text-slate-900">Simulasi Target Laba Bersih Bulanan</h3>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Target Laba Bersih Diinginkan (Rp)</label>
+                                    <input type="number" id="bep-target-profit" oninput="calculateBep()" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" value="5000000">
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-xs text-slate-500 block">Penjualan Dibutuhkan per Bulan</span>
+                                    <p id="bep-target-cups-month" class="text-lg font-bold text-slate-900">0 cup</p>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-slate-500 block">Penjualan Dibutuhkan per Hari (30 Hari)</span>
+                                    <p id="bep-target-cups-day" class="text-lg font-bold text-emerald-600">0 cup / hari</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Add / Edit Ingredient -->
+    <div id="ingredient-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="ing-modal-title" class="font-bold text-base text-slate-900">Tambah Bahan Baku</h3>
+                <button onclick="closeIngredientModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <input type="hidden" id="edit-ing-id">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Bahan / Kemasan</label>
+                    <input type="text" id="form-ing-name" placeholder="Cth: Biji Kopi Arabika" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Kategori</label>
+                    <select id="form-ing-category" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        <option value="Bahan Utama">Bahan Utama (Kopi/Matcha/Coklat)</option>
+                        <option value="Susu & Sirup">Susu & Sirup</option>
+                        <option value="Kemasan">Kemasan (Cup/Tutup/Sedotan)</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Harga Beli (Rp)</label>
+                        <input type="number" id="form-ing-price" placeholder="Cth: 150000" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Satuan Pembelian</label>
+                        <select id="form-ing-unit" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                            <option value="gram">Gram (g)</option>
+                            <option value="ml">Mililiter (ml)</option>
+                            <option value="pcs">Pcs (Buah)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Total Isi per Kemasan (Jumlah Gram/Ml/Pcs)</label>
+                    <input type="number" id="form-ing-qty" placeholder="Cth: 1000 (untuk 1000 gram)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closeIngredientModal()" class="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition">Batal</button>
+                <button onclick="saveIngredient()" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm shadow-md transition">Simpan Bahan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Recipe Formulation -->
+    <div id="recipe-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="rec-modal-title" class="font-bold text-base text-slate-900">Racik Resep & HPP Menu</h3>
+                <button onclick="closeRecipeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <input type="hidden" id="edit-rec-id">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Menu Minuman</label>
+                    <input type="text" id="form-rec-name" placeholder="Cth: Kopikir Latte" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Kategori</label>
+                    <select id="form-rec-category" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        <option value="Coffee">Coffee</option>
+                        <option value="Non-Coffee">Non-Coffee</option>
+                        <option value="Matcha">Matcha</option>
+                    </select>
+                </div>
+                
+                <div class="pt-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Komposisi Bahan & Kemasan</label>
+                        <button onclick="addRecipeItemRow()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Tambah Bahan
+                        </button>
+                    </div>
+                    <div id="recipe-items-container" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <!-- Dynamic rows -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex space-x-3 pt-2 border-t border-slate-100">
+                <button onclick="closeRecipeModal()" class="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition">Batal</button>
+                <button onclick="saveRecipe()" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm shadow-md transition">Simpan Resep</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL Web App dari Google Apps Script kamu (Isi dengan URL yang sama dengan kasir)
+        const googleScriptURL = 'MASUKKAN_URL_WEB_APP_APPS_SCRIPT_KAMU_DISINI';
+
+        // Default Initial Data
+        const defaultIngredients = [
+            { id: 1, name: "Biji Kopi Arabika Robusta Blend", category: "Bahan Utama", price: 160000, unit: "gram", qty: 1000 },
+            { id: 2, name: "Susu Fresh Milk UHT", category: "Susu & Sirup", price: 21000, unit: "ml", qty: 1000 },
+            { id: 3, name: "Sirup Gula Aren", category: "Susu & Sirup", price: 45000, unit: "ml", qty: 1000 },
+            { id: 4, name: "Cup Plastik 16oz + Tutup", category: "Kemasan", price: 550, unit: "pcs", qty: 1 },
+            { id: 5, name: "Sedotan Steril", category: "Kemasan", price: 100, unit: "pcs", qty: 1 },
+            { id: 6, name: "Bubuk Matcha Premium", category: "Bahan Utama", price: 220000, unit: "gram", qty: 1000 },
+            { id: 7, name: "Bubuk Coklat Belgium", category: "Bahan Utama", price: 180000, unit: "gram", qty: 1000 }
+        ];
+
+        const defaultRecipes = [
+            {
+                id: 1,
+                name: "Kopikir Latte",
+                category: "Coffee",
+                items: [
+                    { ingId: 1, amount: 18 },
+                    { ingId: 2, amount: 120 },
+                    { ingId: 4, amount: 1 },
+                    { ingId: 5, amount: 1 }
+                ]
+            },
+            {
+                id: 2,
+                name: "Kopikir Gula Aren",
+                category: "Coffee",
+                items: [
+                    { ingId: 1, amount: 18 },
+                    { ingId: 2, amount: 100 },
+                    { ingId: 3, amount: 30 },
+                    { ingId: 4, amount: 1 },
+                    { ingId: 5, amount: 1 }
+                ]
+            },
+            {
+                id: 3,
+                name: "Matcha Latte",
+                category: "Matcha",
+                items: [
+                    { ingId: 6, amount: 15 },
+                    { ingId: 2, amount: 130 },
+                    { ingId: 4, amount: 1 },
+                    { ingId: 5, amount: 1 }
+                ]
+            }
+        ];
+
+        // State Management with localStorage persistence
+        let ingredients = JSON.parse(localStorage.getItem('kopikir_ingredients')) || defaultIngredients;
+        let recipes = JSON.parse(localStorage.getItem('kopikir_recipes')) || defaultRecipes;
+
+        window.onload = function() {
+            renderIngredientsTable();
+            renderRecipesGrid();
+            populateRecipeSelects();
+            updateSimulator();
+            calculateBep();
+        };
+
+        function saveData() {
+            localStorage.setItem('kopikir_ingredients', JSON.stringify(ingredients));
+            localStorage.setItem('kopikir_recipes', JSON.stringify(recipes));
+
+            // SINKRONISASI KE GOOGLE SHEETS (Background fetch)
+            if (googleScriptURL && googleScriptURL !== 'https://script.google.com/macros/s/AKfycbyCl0KaBjXOLz4wZM3L3cKKj41csH6AWFe3JjCNOgsA3TH8KZEaKYoiUs6V-exgciM/exec') {
+                try {
+                    fetch(googleScriptURL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            action: 'sync_hpp', 
+                            ingredients: ingredients, 
+                            recipes: recipes 
+                        })
+                    });
+                } catch (err) {
+                    console.error('Gagal sinkron ke Google Sheets:', err);
+                }
+            }
+        }
+
+        function resetAllData() {
+            if (confirm('Apakah Anda yakin ingin mereset seluruh data bahan dan resep kembali ke data bawaan?')) {
+                ingredients = JSON.parse(JSON.stringify(defaultIngredients));
+                recipes = JSON.parse(JSON.stringify(defaultRecipes));
+                saveData();
+                renderIngredientsTable();
+                renderRecipesGrid();
+                populateRecipeSelects();
+                updateSimulator();
+                calculateBep();
+                alert('Data berhasil direset.');
+            }
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['ingredients', 'recipes', 'simulator', 'bep'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (t === tabName) {
+                    el.classList.remove('hidden');
+                    btn.className = "px-4 py-2 bg-slate-900 text-white font-medium rounded-xl text-sm transition flex items-center space-x-2 shadow-sm whitespace-nowrap";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "px-4 py-2 bg-white text-slate-600 hover:bg-slate-100 font-medium rounded-xl text-sm transition flex items-center space-x-2 border border-slate-200 whitespace-nowrap";
+                }
+            });
+            if (tabName === 'simulator') updateSimulator();
+            if (tabName === 'bep') calculateBep();
+        }
+
+        // --- INGREDIENTS LOGIC ---
+        function renderIngredientsTable() {
+            const tbody = document.getElementById('ingredients-table-body');
+            tbody.innerHTML = '';
+
+            ingredients.forEach(ing => {
+                const unitPrice = ing.qty > 0 ? ing.price / ing.qty : 0;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-slate-800">${ing.name}</td>
+                    <td class="p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md">${ing.category}</span></td>
+                    <td class="p-4 text-slate-600">Rp ${ing.price.toLocaleString('id-ID')}</td>
+                    <td class="p-4 text-slate-600">${ing.qty} ${ing.unit}</td>
+                    <td class="p-4 font-bold text-slate-900">Rp ${unitPrice.toFixed(2).replace('.', ',')} / ${ing.unit === 'pcs' ? 'pcs' : (ing.unit === 'gram' ? 'g' : 'ml')}</td>
+                    <td class="p-4 text-center space-x-1">
+                        <button onclick="openEditIngredientModal(${ing.id})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteIngredient(${ing.id})" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openIngredientModal() {
+            document.getElementById('ing-modal-title').textContent = "Tambah Bahan Baku";
+            document.getElementById('edit-ing-id').value = '';
+            document.getElementById('form-ing-name').value = '';
+            document.getElementById('form-ing-category').value = 'Bahan Utama';
+            document.getElementById('form-ing-price').value = '';
+            document.getElementById('form-ing-unit').value = 'gram';
+            document.getElementById('form-ing-qty').value = '';
+            document.getElementById('ingredient-modal').classList.remove('hidden');
+        }
+
+        function openEditIngredientModal(id) {
+            const ing = ingredients.find(i => i.id === id);
+            if (!ing) return;
+            document.getElementById('ing-modal-title').textContent = "Ubah Bahan Baku";
+            document.getElementById('edit-ing-id').value = ing.id;
+            document.getElementById('form-ing-name').value = ing.name;
+            document.getElementById('form-ing-category').value = ing.category;
+            document.getElementById('form-ing-price').value = ing.price;
+            document.getElementById('form-ing-unit').value = ing.unit;
+            document.getElementById('form-ing-qty').value = ing.qty;
+            document.getElementById('ingredient-modal').classList.remove('hidden');
+        }
+
+        function closeIngredientModal() {
+            document.getElementById('ingredient-modal').classList.add('hidden');
+        }
+
+        function saveIngredient() {
+            const editId = document.getElementById('edit-ing-id').value;
+            const name = document.getElementById('form-ing-name').value.trim();
+            const category = document.getElementById('form-ing-category').value;
+            const price = parseFloat(document.getElementById('form-ing-price').value);
+            const unit = document.getElementById('form-ing-unit').value;
+            const qty = parseFloat(document.getElementById('form-ing-qty').value);
+
+            if (!name || isNaN(price) || isNaN(qty) || qty <= 0) {
+                alert('Harap isi semua kolom dengan valid!');
+                return;
+            }
+
+            if (editId) {
+                const ing = ingredients.find(i => i.id == editId);
+                if (ing) {
+                    ing.name = name;
+                    ing.category = category;
+                    ing.price = price;
+                    ing.unit = unit;
+                    ing.qty = qty;
+                }
+            } else {
+                const newId = ingredients.length > 0 ? Math.max(...ingredients.map(i => i.id)) + 1 : 1;
+                ingredients.push({ id: newId, name, category, price, unit, qty });
+            }
+
+            saveData();
+            closeIngredientModal();
+            renderIngredientsTable();
+            renderRecipesGrid();
+            updateSimulator();
+        }
+
+        function deleteIngredient(id) {
+            ingredients = ingredients.filter(i => i.id !== id);
+            saveData();
+            renderIngredientsTable();
+            renderRecipesGrid();
+            updateSimulator();
+        }
+
+        // --- RECIPES & HPP LOGIC ---
+        function calculateRecipeHpp(recipe) {
+            let totalHpp = 0;
+            recipe.items.forEach(item => {
+                const ing = ingredients.find(i => i.id === item.ingId);
+                if (ing && ing.qty > 0) {
+                    const unitPrice = ing.price / ing.qty;
+                    totalHpp += unitPrice * item.amount;
+                }
+            });
+            return totalHpp;
+        }
+
+        function renderRecipesGrid() {
+            const grid = document.getElementById('recipes-grid');
+            grid.innerHTML = '';
+
+            if (recipes.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400">Belum ada resep menu</div>`;
+                return;
+            }
+
+            recipes.forEach(rec => {
+                const hpp = calculateRecipeHpp(rec);
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 rounded-2xl border border-slate-200 p-5 flex flex-col justify-between shadow-sm";
+                
+                let itemsListHtml = '';
+                rec.items.forEach(item => {
+                    const ing = ingredients.find(i => i.id === item.ingId);
+                    const ingName = ing ? ing.name : 'Bahan Terhapus';
+                    const unitPrice = (ing && ing.qty > 0) ? (ing.price / ing.qty) : 0;
+                    const subtotal = unitPrice * item.amount;
+                    itemsListHtml += `
+                        <div class="flex justify-between text-xs py-1 border-b border-slate-200/60">
+                            <span class="text-slate-700">${ingName} (${item.amount} ${ing ? ing.unit : ''})</span>
+                            <span class="font-semibold text-slate-900">Rp ${subtotal.toLocaleString('id-ID', {maximumFractionDigits: 0})}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base">${rec.name}</h3>
+                                <span class="px-2 py-0.5 bg-slate-200 text-slate-800 text-[10px] font-semibold rounded">${rec.category}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 uppercase block font-bold">HPP / Cup</span>
+                                <span class="text-lg font-bold text-slate-900">Rp ${hpp.toLocaleString('id-ID', {maximumFractionDigits: 0})}</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1 my-3 bg-white p-3 rounded-xl border border-slate-200">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Komposisi Bahan:</span>
+                            ${itemsListHtml}
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 pt-3 border-t border-slate-200">
+                        <button onclick="openEditRecipeModal(${rec.id})" class="flex-1 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                            <i class="fa-solid fa-pen mr-1"></i> Ubah Resep
+                        </button>
+                        <button onclick="deleteRecipe(${rec.id})" class="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openRecipeModal() {
+            document.getElementById('rec-modal-title').textContent = "Racik Resep & HPP Menu";
+            document.getElementById('edit-rec-id').value = '';
+            document.getElementById('form-rec-name').value = '';
+            document.getElementById('form-rec-category').value = 'Coffee';
+            document.getElementById('recipe-items-container').innerHTML = '';
+            addRecipeItemRow();
+            document.getElementById('recipe-modal').classList.remove('hidden');
+        }
+
+        function openEditRecipeModal(id) {
+            const rec = recipes.find(r => r.id === id);
+            if (!rec) return;
+            document.getElementById('rec-modal-title').textContent = "Ubah Resep Menu";
+            document.getElementById('edit-rec-id').value = rec.id;
+            document.getElementById('form-rec-name').value = rec.name;
+            document.getElementById('form-rec-category').value = rec.category;
+            
+            const container = document.getElementById('recipe-items-container');
+            container.innerHTML = '';
+            rec.items.forEach(item => {
+                addRecipeItemRow(item.ingId, item.amount);
+            });
+            document.getElementById('recipe-modal').classList.remove('hidden');
+        }
+
+        function closeRecipeModal() {
+            document.getElementById('recipe-modal').classList.add('hidden');
+        }
+
+        function addRecipeItemRow(selectedIngId = '', amountVal = '') {
+            const container = document.getElementById('recipe-items-container');
+            const row = document.createElement('div');
+            row.className = "flex items-center space-x-2 recipe-row";
+            
+            let options = '<option value="">Pilih Bahan...</option>';
+            ingredients.forEach(ing => {
+                const sel = (ing.id == selectedIngId) ? 'selected' : '';
+                options += `<option value="${ing.id}" ${sel}>${ing.name} (${ing.unit})</option>`;
+            });
+
+            row.innerHTML = `
+                <select class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 recipe-ing-select">
+                    ${options}
+                </select>
+                <input type="number" placeholder="Takaran" value="${amountVal}" class="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 recipe-amount-input">
+                <button onclick="this.parentElement.remove()" class="p-2 text-rose-500 hover:text-rose-700">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function saveRecipe() {
+            const editId = document.getElementById('edit-rec-id').value;
+            const name = document.getElementById('form-rec-name').value.trim();
+            const category = document.getElementById('form-rec-category').value;
+            
+            if (!name) {
+                alert('Nama menu resep harus diisi!');
+                return;
+            }
+
+            const rows = document.querySelectorAll('.recipe-row');
+            let items = [];
+            rows.forEach(r => {
+                const ingId = r.querySelector('.recipe-ing-select').value;
+                const amount = parseFloat(r.querySelector('.recipe-amount-input').value);
+                if (ingId && !isNaN(amount) && amount > 0) {
+                    items.push({ ingId: parseInt(ingId), amount });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('Minimal pilih 1 bahan untuk resep ini!');
+                return;
+            }
+
+            if (editId) {
+                const rec = recipes.find(r => r.id == editId);
+                if (rec) {
+                    rec.name = name;
+                    rec.category = category;
+                    rec.items = items;
+                }
+            } else {
+                const newId = recipes.length > 0 ? Math.max(...recipes.map(r => r.id)) + 1 : 1;
+                recipes.push({ id: newId, name, category, items });
+            }
+
+            saveData();
+            closeRecipeModal();
+            renderRecipesGrid();
+            populateRecipeSelects();
+            updateSimulator();
+        }
+
+        function deleteRecipe(id) {
+            recipes = recipes.filter(r => r.id !== id);
+            saveData();
+            renderRecipesGrid();
+            populateRecipeSelects();
+            updateSimulator();
+        }
+
+        // --- SIMULATOR LOGIC ---
+        function populateRecipeSelects() {
+            const select = document.getElementById('sim-recipe-select');
+            select.innerHTML = '';
+            recipes.forEach(rec => {
+                const opt = document.createElement('option');
+                opt.value = rec.id;
+                opt.textContent = rec.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateSimulator() {
+            const recipeId = document.getElementById('sim-recipe-select').value;
+            const rec = recipes.find(r => r.id == recipeId);
+            if (!rec) return;
+
+            const hpp = calculateRecipeHpp(rec);
+            document.getElementById('sim-res-hpp').textContent = `Rp ${hpp.toLocaleString('id-ID', {maximumFractionDigits: 0})}`;
+
+            const sellingPrice = parseFloat(document.getElementById('sim-selling-price').value) || 0;
+            const profit = sellingPrice - hpp;
+            const margin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+
+            document.getElementById('sim-res-profit').textContent = `Rp ${profit.toLocaleString('id-ID', {maximumFractionDigits: 0})}`;
+            document.getElementById('sim-res-margin').textContent = `Margin: ${margin.toFixed(1)}%`;
+            document.getElementById('sim-target-margin').value = margin.toFixed(1);
+
+            const ojolCommPercent = parseFloat(document.getElementById('sim-ojol-comm').value) || 0;
+            const promoDiscPercent = parseFloat(document.getElementById('sim-promo-disc').value) || 0;
+
+            const ojolPrice = sellingPrice;
+            const ojolCut = ojolPrice * (ojolCommPercent / 100);
+            const promoCut = ojolPrice * (promoDiscPercent / 100);
+            const ojolNet = ojolPrice - ojolCut - promoCut - hpp;
+
+            document.getElementById('sim-ojol-price').textContent = `Rp ${ojolPrice.toLocaleString('id-ID')}`;
+            document.getElementById('sim-ojol-cut').textContent = `Rp ${(ojolCut + promoCut).toLocaleString('id-ID')}`;
+            document.getElementById('sim-ojol-net').textContent = `Rp ${ojolNet.toLocaleString('id-ID', {maximumFractionDigits: 0})}`;
+        }
+
+        function updateSimulatorFromMargin() {
+            const recipeId = document.getElementById('sim-recipe-select').value;
+            const rec = recipes.find(r => r.id == recipeId);
+            if (!rec) return;
+
+            const hpp = calculateRecipeHpp(rec);
+            const targetMargin = parseFloat(document.getElementById('sim-target-margin').value) || 0;
+
+            if (targetMargin >= 100) return;
+            const suggestedPrice = hpp / (1 - (targetMargin / 100));
+            document.getElementById('sim-selling-price').value = Math.round(suggestedPrice);
+            updateSimulator();
+        }
+
+        // --- BEP LOGIC ---
+        function calculateBep() {
+            const rent = parseFloat(document.getElementById('bep-rent').value) || 0;
+            const salary = parseFloat(document.getElementById('bep-salary').value) || 0;
+            const utilities = parseFloat(document.getElementById('bep-utilities').value) || 0;
+            const other = parseFloat(document.getElementById('bep-other').value) || 0;
+            const avgProfit = parseFloat(document.getElementById('bep-avg-profit').value) || 1;
+            const targetProfit = parseFloat(document.getElementById('bep-target-profit').value) || 0;
+
+            const totalFixedCost = rent + salary + utilities + other;
+            document.getElementById('bep-res-total-cost').textContent = `Rp ${totalFixedCost.toLocaleString('id-ID')}`;
+
+            const bepCupsMonth = Math.ceil(totalFixedCost / avgProfit);
+            const bepCupsDay = Math.ceil(bepCupsMonth / 30);
+
+            document.getElementById('bep-res-cups-month').textContent = `${bepCupsMonth.toLocaleString('id-ID')} cup`;
+            document.getElementById('bep-res-cups-day').textContent = `${bepCupsDay.toLocaleString('id-ID')} cup / hari`;
+
+            const targetCupsMonth = Math.ceil((totalFixedCost + targetProfit) / avgProfit);
+            const targetCupsDay = Math.ceil(targetCupsMonth / 30);
+
+            document.getElementById('bep-target-cups-month').textContent = `${targetCupsMonth.toLocaleString('id-ID')} cup`;
+            document.getElementById('bep-target-cups-day').textContent = `${targetCupsDay.toLocaleString('id-ID')} cup / hari`;
+        }
+    </script>
+</body>
+</html>
